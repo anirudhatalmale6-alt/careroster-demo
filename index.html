@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CareRoster — Care CRM & ATS (Demo)</title>
+<style>
+:root{
+  --bg:#f4f6f8; --panel:#ffffff; --ink:#1a2b33; --muted:#6b7f89; --line:#e4eaed;
+  --brand:#0d9488; --brand-dk:#0f766e; --brand-soft:#e6f5f3;
+  --accent:#3b6ef0; --accent-soft:#eaf0fe;
+  --amber:#e0952b; --amber-soft:#fdf3e2; --red:#d94a4a; --red-soft:#fbecec;
+  --green:#2f9e5f; --green-soft:#e7f5ec;
+  --radius:14px; --shadow:0 1px 3px rgba(16,40,50,.06),0 8px 24px rgba(16,40,50,.05);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+a{color:inherit;text-decoration:none}
+.app{display:flex;min-height:100vh}
+
+/* SIDEBAR */
+.sidebar{width:240px;background:#0c1f26;color:#cde0e2;display:flex;flex-direction:column;position:fixed;top:0;bottom:0;left:0;z-index:30}
+.brand{display:flex;align-items:center;gap:10px;padding:20px 20px 16px}
+.brand .logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#14b8a6,#0d9488);display:grid;place-items:center;font-weight:800;color:#fff;font-size:17px;box-shadow:0 4px 12px rgba(13,148,136,.4)}
+.brand b{font-size:16px;color:#fff;letter-spacing:-.2px}
+.brand span{font-size:10.5px;color:#6f8f92;display:block;font-weight:500;letter-spacing:.3px}
+.nav{padding:6px 12px;flex:1;overflow-y:auto}
+.nav .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#5f7d81;padding:14px 10px 6px;font-weight:700}
+.nav a{display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:9px;font-size:13.5px;color:#a9c4c6;margin-bottom:2px;font-weight:500;transition:.12s}
+.nav a:hover{background:#132c33;color:#fff}
+.nav a.active{background:var(--brand);color:#fff;box-shadow:0 3px 10px rgba(13,148,136,.35)}
+.nav a .ic{width:18px;text-align:center;font-size:15px}
+.nav a .badge{margin-left:auto;background:#d94a4a;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px}
+.sb-foot{padding:14px 16px;border-top:1px solid #16323a;font-size:11px;color:#5f7d81}
+
+/* MAIN */
+.main{flex:1;margin-left:240px;display:flex;flex-direction:column;min-width:0}
+.topbar{height:62px;background:var(--panel);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;padding:0 26px;position:sticky;top:0;z-index:20}
+.topbar h1{font-size:17px;font-weight:700;letter-spacing:-.3px}
+.topbar .sub{font-size:12px;color:var(--muted);font-weight:500}
+.spacer{flex:1}
+.clock{font-variant-numeric:tabular-nums;font-weight:600;font-size:13px;color:var(--muted);background:var(--bg);padding:7px 12px;border-radius:9px}
+.roleswitch{display:flex;align-items:center;gap:8px;background:var(--bg);padding:5px 6px 5px 12px;border-radius:11px}
+.roleswitch label{font-size:11px;color:var(--muted);font-weight:600}
+.roleswitch select{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 9px;font-family:inherit;font-size:12.5px;font-weight:600;color:var(--ink);cursor:pointer}
+.who{display:flex;align-items:center;gap:9px}
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--brand-soft);color:var(--brand-dk);display:grid;place-items:center;font-weight:700;font-size:13px}
+.who .nm{font-size:12.5px;font-weight:700;line-height:1.2}
+.who .rl{font-size:10.5px;color:var(--muted)}
+
+.content{padding:26px;max-width:1200px;width:100%}
+.pagehead{margin-bottom:20px}
+.pagehead h2{font-size:22px;font-weight:800;letter-spacing:-.5px}
+.pagehead p{color:var(--muted);font-size:13px;margin-top:3px}
+
+/* KPI */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:22px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow)}
+.kpi .t{font-size:12px;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:7px}
+.kpi .v{font-size:27px;font-weight:800;margin-top:8px;letter-spacing:-1px}
+.kpi .d{font-size:11.5px;margin-top:4px;font-weight:600}
+.kpi .d.up{color:var(--green)} .kpi .d.dn{color:var(--red)}
+.kpi .ic{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;font-size:14px}
+
+.grid2{display:grid;grid-template-columns:1.6fr 1fr;gap:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:18px}
+.card .ch{display:flex;align-items:center;gap:10px;padding:15px 18px;border-bottom:1px solid var(--line)}
+.card .ch h3{font-size:14.5px;font-weight:700}
+.card .ch .cnt{font-size:11px;color:var(--muted);background:var(--bg);padding:2px 8px;border-radius:20px;font-weight:600}
+.card .cb{padding:6px 18px 14px}
+.card .ch .act{margin-left:auto}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:700;padding:10px 10px;border-bottom:1px solid var(--line)}
+td{padding:11px 10px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:#fafcfc}
+.person{display:flex;align-items:center;gap:9px}
+.ava-sm{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:11px;flex-shrink:0}
+.person .nm{font-weight:600;font-size:12.5px} .person .sub{font-size:11px;color:var(--muted)}
+
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.b-green{background:var(--green-soft);color:#1e7a44} .b-amber{background:var(--amber-soft);color:#a56a12}
+.b-red{background:var(--red-soft);color:#b83232} .b-blue{background:var(--accent-soft);color:#2a54c0}
+.b-gray{background:#eef2f4;color:#5f7783} .b-teal{background:var(--brand-soft);color:var(--brand-dk)}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+
+.btn{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:9px;font-size:12.5px;font-weight:700;transition:.12s}
+.btn-pri{background:var(--brand);color:#fff} .btn-pri:hover{background:var(--brand-dk)}
+.btn-gh{background:#fff;color:var(--ink);border:1px solid var(--line)} .btn-gh:hover{border-color:var(--brand);color:var(--brand-dk)}
+.btn-sm{padding:5px 11px;font-size:11.5px;border-radius:7px}
+.btn-accent{background:var(--accent);color:#fff}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* shift cards */
+.shiftgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.shift{border:1px solid var(--line);border-radius:12px;padding:15px;background:#fff;position:relative;transition:.15s}
+.shift:hover{border-color:var(--brand);box-shadow:0 6px 18px rgba(13,148,136,.10)}
+.shift .top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.shift .role{font-weight:800;font-size:14px}
+.shift .loc{font-size:12px;color:var(--muted);margin-top:1px}
+.shift .row{display:flex;align-items:center;gap:8px;font-size:12.5px;margin:6px 0;color:#3a5058}
+.shift .row .k{color:var(--muted);width:56px;font-weight:600;font-size:11px}
+.shift .pay{font-weight:800;color:var(--brand-dk);font-size:15px}
+.shift .foot{display:flex;gap:8px;margin-top:12px;align-items:center}
+
+/* clock widget */
+.clockcard{text-align:center;padding:26px 20px}
+.clockcard .big{font-size:46px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-1px}
+.clockcard .lbl{color:var(--muted);font-size:12px;font-weight:600;margin-bottom:4px}
+.clockcard .status{margin:14px 0}
+.clockcard .elapsed{font-size:34px;font-weight:800;color:var(--brand-dk);font-variant-numeric:tabular-nums;margin:8px 0}
+.pulse{width:9px;height:9px;border-radius:50%;background:var(--green);display:inline-block;box-shadow:0 0 0 rgba(47,158,95,.5);animation:pulse 1.6s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(47,158,95,.5)}70%{box-shadow:0 0 0 9px rgba(47,158,95,0)}100%{box-shadow:0 0 0 0 rgba(47,158,95,0)}}
+
+/* progress bar */
+.pbar{height:7px;background:#eef2f4;border-radius:20px;overflow:hidden;margin-top:6px}
+.pbar i{display:block;height:100%;border-radius:20px}
+
+/* newsfeed */
+.post{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}
+.post:last-child{border-bottom:none}
+.post .body{flex:1}
+.post .meta{font-size:11px;color:var(--muted);margin-bottom:3px}
+.post .meta b{color:var(--ink);font-weight:700}
+.post .txt{font-size:13px}
+.post.pin{background:var(--amber-soft);margin:0 -18px;padding:14px 18px;border-radius:10px;border-bottom:none}
+
+/* availability grid */
+.availtbl td,.availtbl th{text-align:center;padding:8px 4px}
+.availtbl td:first-child,.availtbl th:first-child{text-align:left}
+.slot{width:30px;height:24px;border-radius:5px;display:inline-block;cursor:pointer}
+.slot.on{background:var(--green)} .slot.off{background:#eef2f4} .slot.mb{background:var(--amber)}
+
+/* toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#0c1f26;color:#fff;padding:12px 20px;border-radius:11px;font-size:13px;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,.25);opacity:0;transition:.3s;z-index:100;display:flex;align-items:center;gap:9px;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast .ok{color:#4ade80}
+
+/* modal */
+.modal-bg{position:fixed;inset:0;background:rgba(12,31,38,.5);display:none;align-items:center;justify-content:center;z-index:90;padding:20px}
+.modal-bg.show{display:flex}
+.modal{background:#fff;border-radius:16px;width:100%;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden}
+.modal .mh{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center}
+.modal .mh h3{font-size:16px;font-weight:800}
+.modal .mh .x{margin-left:auto;font-size:20px;color:var(--muted);cursor:pointer}
+.modal .mb{padding:20px 22px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12px;font-weight:700;margin-bottom:5px;color:#3a5058}
+.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-family:inherit;font-size:13px;color:var(--ink)}
+.field input:focus,.field select:focus{outline:none;border-color:var(--brand)}
+.modal .mf{padding:16px 22px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end}
+
+.hide{display:none!important}
+.rowflex{display:flex;gap:8px;align-items:center}
+.mini{font-size:11px;color:var(--muted)}
+.expwarn{color:var(--red);font-weight:700}
+@media(max-width:960px){.kpis{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.sidebar{width:64px}.brand b,.brand span,.nav .lbl,.nav a span.tx,.sb-foot{display:none}.nav a{justify-content:center}.main{margin-left:64px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">C</div>
+      <div><b>CareRoster</b><span>CRM &amp; ATS</span></div>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <div class="sb-foot">Demo build · v0.9<br>Sample data only</div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div>
+        <h1 id="pgtitle">Dashboard</h1>
+        <div class="sub" id="pgsub">Welcome back</div>
+      </div>
+      <div class="spacer"></div>
+      <div class="clock" id="topclock">--:--:--</div>
+      <div class="roleswitch">
+        <label>View as</label>
+        <select id="roleSel" onchange="switchRole(this.value)">
+          <option value="admin">Agency Manager / Admin</option>
+          <option value="provider">Client / Care Provider</option>
+          <option value="worker">Care Worker</option>
+        </select>
+      </div>
+      <div class="who">
+        <div class="avatar" id="topAva">A</div>
+        <div><div class="nm" id="topName">Sarah Adams</div><div class="rl" id="topRole">Admin</div></div>
+      </div>
+    </header>
+    <div class="content" id="content"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="modal-bg" id="modalBg"><div class="modal" id="modal"></div></div>
+
+<script>
+/* ---------------- SEED DATA ---------------- */
+const AVA_COLORS=[['#e6f5f3','#0f766e'],['#eaf0fe','#2a54c0'],['#fdf3e2','#a56a12'],['#e7f5ec','#1e7a44'],['#fbecec','#b83232'],['#f0eafe','#6b3fbf']];
+function ac(i){return AVA_COLORS[i%AVA_COLORS.length]}
+function initials(n){return n.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()}
+
+const STORE_KEY='careroster_demo_v1';
+const seed=()=>({
+  role:'admin',
+  workers:[
+    {id:'w1',name:'Amara Okafor',role:'Registered Nurse',phone:'07700 900123',rating:4.9,status:'On shift',compliance:'valid'},
+    {id:'w2',name:'James Whitfield',role:'Care Assistant',phone:'07700 900871',rating:4.7,status:'Available',compliance:'expiring'},
+    {id:'w3',name:'Priya Nair',role:'Senior Carer',phone:'07700 900452',rating:4.8,status:'Available',compliance:'valid'},
+    {id:'w4',name:'Tomasz Kowalski',role:'Support Worker',phone:'07700 900233',rating:4.5,status:'Off',compliance:'expired'},
+    {id:'w5',name:'Grace Bennett',role:'Care Assistant',phone:'07700 900918',rating:4.6,status:'Available',compliance:'valid'},
+    {id:'w6',name:'Daniel Osei',role:'Registered Nurse',phone:'07700 900677',rating:4.9,status:'On shift',compliance:'valid'},
+  ],
+  clients:[
+    {id:'c1',name:'Rosewood Care Home',contact:'Margaret Hale'},
+    {id:'c2',name:'Oakfield Nursing Home',contact:'Peter Grant'},
+    {id:'c3',name:'Sunnymead Residential',contact:'Aisha Rahman'},
+  ],
+  shifts:[
+    {id:'s1',role:'Registered Nurse',client:'Rosewood Care Home',date:'Today',start:'20:00',end:'08:00',pay:22,status:'open'},
+    {id:'s2',role:'Care Assistant',client:'Oakfield Nursing Home',date:'Today',start:'07:00',end:'15:00',pay:13.5,status:'open'},
+    {id:'s3',role:'Senior Carer',client:'Sunnymead Residential',date:'Tomorrow',start:'08:00',end:'20:00',pay:16,status:'open'},
+    {id:'s4',role:'Support Worker',client:'Rosewood Care Home',date:'Tomorrow',start:'14:00',end:'22:00',pay:12.8,status:'open'},
+    {id:'s5',role:'Care Assistant',client:'Oakfield Nursing Home',date:'28 Jul',start:'22:00',end:'07:00',pay:14,status:'open'},
+  ],
+  booked:[
+    {id:'b1',role:'Registered Nurse',client:'Rosewood Care Home',worker:'Amara Okafor',date:'Today',start:'08:00',end:'20:00',status:'clocked-in',clockIn:'07:58'},
+    {id:'b2',role:'Registered Nurse',client:'Sunnymead Residential',worker:'Daniel Osei',date:'Today',start:'09:00',end:'17:00',status:'clocked-in',clockIn:'08:56'},
+    {id:'b3',role:'Care Assistant',client:'Oakfield Nursing Home',worker:'Grace Bennett',date:'Tomorrow',start:'07:00',end:'19:00',status:'confirmed'},
+  ],
+  timesheets:[
+    {id:'t1',worker:'Amara Okafor',client:'Rosewood Care Home',date:'26 Jul',hours:11.5,rate:22,status:'pending'},
+    {id:'t2',worker:'Priya Nair',client:'Sunnymead Residential',date:'26 Jul',hours:12,rate:16,status:'pending'},
+    {id:'t3',worker:'James Whitfield',client:'Oakfield Nursing Home',date:'25 Jul',hours:8,rate:13.5,status:'approved'},
+    {id:'t4',worker:'Grace Bennett',client:'Rosewood Care Home',date:'25 Jul',hours:11.5,rate:13.5,status:'approved'},
+  ],
+  invoices:[
+    {id:'INV-1042',client:'Rosewood Care Home',period:'Wk 30',amount:3184,status:'paid'},
+    {id:'INV-1043',client:'Oakfield Nursing Home',period:'Wk 30',amount:2260,status:'sent'},
+    {id:'INV-1044',client:'Sunnymead Residential',period:'Wk 30',amount:1728,status:'draft'},
+  ],
+  compliance:[
+    {worker:'Amara Okafor',dbs:'valid',rtw:'valid',training:'valid',dbsExp:'12 Mar 2027'},
+    {worker:'James Whitfield',dbs:'valid',rtw:'valid',training:'expiring',dbsExp:'09 Aug 2026'},
+    {worker:'Priya Nair',dbs:'valid',rtw:'valid',training:'valid',dbsExp:'22 Jan 2027'},
+    {worker:'Tomasz Kowalski',dbs:'expired',rtw:'valid',training:'valid',dbsExp:'14 Jun 2026'},
+    {worker:'Grace Bennett',dbs:'valid',rtw:'valid',training:'valid',dbsExp:'30 Nov 2026'},
+    {worker:'Daniel Osei',dbs:'valid',rtw:'valid',training:'valid',dbsExp:'05 May 2027'},
+  ],
+  news:[
+    {author:'Sarah Adams',role:'Admin',time:'2h ago',text:'Reminder: all July timesheets must be submitted by Friday 5pm for the weekly invoice run.',pin:true},
+    {author:'Sarah Adams',role:'Admin',time:'Yesterday',text:'Welcome Daniel Osei to the team! Registered Nurse joining our Sunnymead rota. 🎉',pin:false},
+    {author:'Rosewood Care Home',role:'Client',time:'2 days ago',text:'Thank you to Amara for excellent overnight cover this week — residents love her.',pin:false},
+  ],
+  myClock:null // worker clock state {in:timestamp}
+});
+
+let db=JSON.parse(localStorage.getItem(STORE_KEY)||'null')||seed();
+function save(){localStorage.setItem(STORE_KEY,JSON.stringify(db))}
+
+const ME={
+  admin:{name:'Sarah Adams',role:'Agency Manager',short:'Admin'},
+  provider:{name:'Margaret Hale',role:'Rosewood Care Home',short:'Client'},
+  worker:{name:'James Whitfield',role:'Care Assistant',short:'Care Worker'},
+};
+
+/* ---------------- NAV DEFINITIONS ---------------- */
+const NAV={
+  admin:[
+    {lbl:'Overview'},
+    {id:'dashboard',ic:'📊',tx:'Dashboard'},
+    {id:'shifts',ic:'🗓️',tx:'Shift Board'},
+    {id:'staff',ic:'👥',tx:'Staff & Compliance'},
+    {lbl:'Finance'},
+    {id:'timesheets',ic:'⏱️',tx:'Timesheets',badge:'pending'},
+    {id:'invoices',ic:'🧾',tx:'Invoices'},
+    {lbl:'Agency'},
+    {id:'availability',ic:'📅',tx:'Availability'},
+    {id:'clients',ic:'🏥',tx:'Clients'},
+    {id:'news',ic:'📣',tx:'Newsfeed'},
+  ],
+  provider:[
+    {lbl:'Care Home'},
+    {id:'dashboard',ic:'📊',tx:'Dashboard'},
+    {id:'book',ic:'➕',tx:'Request Staff'},
+    {id:'bookings',ic:'🗓️',tx:'My Bookings'},
+    {id:'timesheets',ic:'⏱️',tx:'Approve Timesheets',badge:'pending'},
+    {id:'invoices',ic:'🧾',tx:'Invoices'},
+    {id:'news',ic:'📣',tx:'Newsfeed'},
+  ],
+  worker:[
+    {lbl:'My Work'},
+    {id:'dashboard',ic:'📊',tx:'Dashboard'},
+    {id:'openshifts',ic:'🔥',tx:'Open Shifts',badge:'open'},
+    {id:'myschedule',ic:'🗓️',tx:'My Schedule'},
+    {id:'clock',ic:'⏱️',tx:'Clock In / Out'},
+    {lbl:'Profile'},
+    {id:'myavail',ic:'📅',tx:'My Availability'},
+    {id:'mycompliance',ic:'🛡️',tx:'My Documents'},
+    {id:'news',ic:'📣',tx:'Newsfeed'},
+  ]
+};
+
+let current='dashboard';
+
+/* ---------------- RENDER HELPERS ---------------- */
+function bAva(name,i){const[c1,c2]=ac(i||name.length);return `<div class="ava-sm" style="background:${c1};color:${c2}">${initials(name)}</div>`}
+function person(name,sub,i){return `<div class="person">${bAva(name,i)}<div><div class="nm">${name}</div><div class="sub">${sub||''}</div></div></div>`}
+function compBadge(s){return s==='valid'?'<span class="badge b-green"><span class="dot" style="background:#2f9e5f"></span>Valid</span>':s==='expiring'?'<span class="badge b-amber"><span class="dot" style="background:#e0952b"></span>Expiring</span>':'<span class="badge b-red"><span class="dot" style="background:#d94a4a"></span>Expired</span>'}
+function statusBadge(s){const m={'clocked-in':['b-green','● Clocked in'],'confirmed':['b-blue','Confirmed'],'open':['b-amber','Open'],'pending':['b-amber','Pending'],'approved':['b-green','Approved'],'paid':['b-green','Paid'],'sent':['b-blue','Sent'],'draft':['b-gray','Draft']};const[c,t]=m[s]||['b-gray',s];return `<span class="badge ${c}">${t}</span>`}
+
+/* ---------------- PAGES ---------------- */
+function pageDashboard(){
+  if(db.role==='admin')return adminDash();
+  if(db.role==='provider')return providerDash();
+  return workerDash();
+}
+
+function adminDash(){
+  const openCnt=db.shifts.filter(s=>s.status==='open').length;
+  const onShift=db.booked.filter(b=>b.status==='clocked-in').length;
+  const pendTs=db.timesheets.filter(t=>t.status==='pending').length;
+  const outstanding=db.invoices.filter(i=>i.status!=='paid').reduce((a,i)=>a+i.amount,0);
+  return `
+  <div class="pagehead"><h2>Good afternoon, Sarah 👋</h2><p>Here's what's happening across your agency today.</p></div>
+  <div class="kpis">
+    ${kpi('Open vacancies',openCnt,'🔥','var(--amber-soft)','3 need filling today','dn')}
+    ${kpi('Staff on shift now',onShift,'🟢','var(--green-soft)','Live clock-in tracking','up')}
+    ${kpi('Timesheets to approve',pendTs,'⏱️','var(--accent-soft)','£'+ (db.timesheets.filter(t=>t.status==='pending').reduce((a,t)=>a+t.hours*t.rate,0)).toFixed(0)+' value','')}
+    ${kpi('Outstanding invoices','£'+outstanding.toLocaleString(),'🧾','var(--brand-soft)','2 unpaid','')}
+  </div>
+  <div class="grid2">
+    <div>
+      <div class="card">
+        <div class="ch"><h3>Live — staff currently on shift</h3><span class="cnt">${onShift} active</span><span class="act"><button class="btn btn-gh btn-sm" onclick="go('shifts')">Shift board →</button></span></div>
+        <div class="cb"><table><thead><tr><th>Care worker</th><th>Client site</th><th>Clocked in</th><th>Elapsed</th><th>Status</th></tr></thead><tbody>
+        ${db.booked.filter(b=>b.status==='clocked-in').map((b,i)=>`<tr><td>${person(b.worker,b.role,i)}</td><td>${b.client}</td><td>${b.clockIn}</td><td><b class="elap" data-in="${b.clockIn}">—</b></td><td><span class="badge b-green"><span class="pulse"></span> On site</span></td></tr>`).join('')}
+        </tbody></table></div>
+      </div>
+      <div class="card">
+        <div class="ch"><h3>Compliance alerts</h3><span class="cnt">2 need action</span><span class="act"><button class="btn btn-gh btn-sm" onclick="go('staff')">View all →</button></span></div>
+        <div class="cb"><table><tbody>
+        <tr><td>${person('Tomasz Kowalski','Support Worker',3)}</td><td><span class="mini">DBS check</span></td><td class="expwarn">Expired 14 Jun 2026</td><td style="text-align:right">${compBadge('expired')}</td></tr>
+        <tr><td>${person('James Whitfield','Care Assistant',1)}</td><td><span class="mini">Manual handling training</span></td><td style="color:var(--amber);font-weight:700">Expires in 13 days</td><td style="text-align:right">${compBadge('expiring')}</td></tr>
+        </tbody></table></div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="ch"><h3>Open vacancies</h3><span class="cnt">${openCnt}</span></div>
+        <div class="cb">
+        ${db.shifts.filter(s=>s.status==='open').slice(0,3).map(s=>`
+          <div style="padding:11px 0;border-bottom:1px solid var(--line)">
+            <div style="display:flex;justify-content:space-between"><b style="font-size:13px">${s.role}</b><span class="pay" style="color:var(--brand-dk);font-weight:800">£${s.pay}/hr</span></div>
+            <div class="mini" style="margin-top:2px">${s.client} · ${s.date} · ${s.start}–${s.end}</div>
+          </div>`).join('')}
+        <button class="btn btn-pri btn-sm" style="margin-top:12px;width:100%;justify-content:center" onclick="go('shifts')">Manage shift board</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ch"><h3>This week</h3></div>
+        <div class="cb">
+          ${miniStat('Shifts filled','86%','var(--green)',86)}
+          ${miniStat('Fill rate vs target','92%','var(--brand)',92)}
+          ${miniStat('Timesheets approved','64%','var(--amber)',64)}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+function miniStat(label,val,color,pct){return `<div style="margin-bottom:13px"><div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:600"><span>${label}</span><span>${val}</span></div><div class="pbar"><i style="width:${pct}%;background:${color}"></i></div></div>`}
+
+function providerDash(){
+  const myBookings=db.booked.filter(b=>b.client==='Rosewood Care Home');
+  const myShiftsOpen=db.shifts.filter(s=>s.client==='Rosewood Care Home' && s.status==='open').length;
+  return `
+  <div class="pagehead"><h2>Rosewood Care Home</h2><p>Your staffing at a glance, Margaret.</p></div>
+  <div class="kpis">
+    ${kpi('Staff booked today',myBookings.filter(b=>b.date==='Today').length,'👥','var(--green-soft)','All confirmed','up')}
+    ${kpi('Open requests',myShiftsOpen,'🔥','var(--amber-soft)','Agency filling','')}
+    ${kpi('Timesheets to approve',db.timesheets.filter(t=>t.client==='Rosewood Care Home'&&t.status==='pending').length,'⏱️','var(--accent-soft)','Action needed','')}
+    ${kpi('This week spend','£3,184','🧾','var(--brand-soft)','Invoice INV-1042','')}
+  </div>
+  <div class="card">
+    <div class="ch"><h3>Who's covering your home today</h3><span class="act"><button class="btn btn-pri btn-sm" onclick="go('book')">+ Request staff</button></span></div>
+    <div class="cb"><table><thead><tr><th>Care worker</th><th>Role</th><th>Shift</th><th>Status</th></tr></thead><tbody>
+    ${myBookings.map((b,i)=>`<tr><td>${person(b.worker,'',i)}</td><td>${b.role}</td><td>${b.date} · ${b.start}–${b.end}</td><td>${b.status==='clocked-in'?'<span class="badge b-green"><span class="pulse"></span> On site</span>':statusBadge(b.status)}</td></tr>`).join('')}
+    </tbody></table></div>
+  </div>
+  <div class="card">
+    <div class="ch"><h3>Newsfeed</h3></div>
+    <div class="cb">${db.news.slice(0,2).map(renderPost).join('')}</div>
+  </div>`;
+}
+
+function workerDash(){
+  const clocked=db.myClock;
+  const open=db.shifts.filter(s=>s.status==='open').length;
+  return `
+  <div class="pagehead"><h2>Hi James 👋</h2><p>You have ${open} open shifts you can pick up.</p></div>
+  <div class="kpis">
+    ${kpi('This week earnings','£432','💷','var(--green-soft)','32 hrs worked','up')}
+    ${kpi('Upcoming shifts',db.booked.filter(b=>b.worker==='Grace Bennett').length||1,'🗓️','var(--accent-soft)','Next: tomorrow 07:00','')}
+    ${kpi('Open shifts nearby',open,'🔥','var(--amber-soft)','Tap to grab','')}
+    ${kpi('Compliance',db.compliance.find(c=>c.worker==='James Whitfield').training==='expiring'?'1 expiring':'All valid','🛡️','var(--brand-soft)','Training due soon','')}
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="ch"><h3>Clock in / out</h3><span class="cnt">Live</span></div>
+      <div class="clockcard">
+        <div class="lbl">Current time</div>
+        <div class="big" id="wclock">--:--</div>
+        ${clocked?`
+          <div class="status"><span class="pulse"></span> <b style="color:var(--green)">Clocked in</b> at ${clocked.inLabel}</div>
+          <div class="lbl">Time on shift</div>
+          <div class="elapsed" id="wElapsed" data-in="${clocked.inLabel}">00:00:00</div>
+          <button class="btn btn-gh" style="border-color:var(--red);color:var(--red)" onclick="clockOut()">■ Clock out</button>
+        `:`
+          <div class="status" style="color:var(--muted)">You're not currently clocked in</div>
+          <p class="mini" style="margin-bottom:16px">Next shift: Rosewood Care Home · Tomorrow 07:00</p>
+          <button class="btn btn-pri" style="padding:12px 26px;font-size:14px" onclick="clockIn()">▶ Clock in now</button>
+        `}
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch"><h3>Open shifts for you</h3><span class="cnt">${open}</span></div>
+      <div class="cb">
+      ${db.shifts.filter(s=>s.status==='open').slice(0,3).map(s=>`
+        <div style="padding:11px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center">
+          <div><b style="font-size:13px">${s.role}</b><div class="mini">${s.client} · ${s.date} · ${s.start}–${s.end}</div></div>
+          <div style="text-align:right"><div class="pay" style="color:var(--brand-dk);font-weight:800">£${s.pay}/hr</div><button class="btn btn-pri btn-sm" style="margin-top:5px" onclick="grabShift('${s.id}')">Grab</button></div>
+        </div>`).join('')}
+      <button class="btn btn-gh btn-sm" style="margin-top:12px;width:100%;justify-content:center" onclick="go('openshifts')">See all open shifts</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function kpi(t,v,ic,bg,d,dir){return `<div class="kpi"><div class="t"><span class="ic" style="background:${bg}">${ic}</span>${t}</div><div class="v">${v}</div><div class="d ${dir}">${d||''}</div></div>`}
+
+function pageShifts(){
+  const open=db.shifts.filter(s=>s.status==='open');
+  return `
+  <div class="pagehead"><h2>Shift Board</h2><p>Post open vacancies, track fill status, and see who's on shift in real time.</p></div>
+  <div class="rowflex" style="margin-bottom:18px"><button class="btn btn-pri" onclick="openPostShift()">＋ Post open shift</button><span class="mini">${open.length} open · ${db.booked.length} assigned</span></div>
+  <div class="card"><div class="ch"><h3>🔥 Open vacancies</h3><span class="cnt">${open.length} unfilled</span></div>
+  <div class="cb"><div class="shiftgrid">
+    ${open.map(s=>`<div class="shift">
+      <div class="top"><div><div class="role">${s.role}</div><div class="loc">${s.client}</div></div><span class="badge b-amber">Open</span></div>
+      <div class="row"><span class="k">📅 When</span>${s.date}, ${s.start}–${s.end}</div>
+      <div class="row"><span class="k">💷 Rate</span><span class="pay">£${s.pay}/hr</span></div>
+      <div class="foot"><button class="btn btn-pri btn-sm" onclick="assignShift('${s.id}')">Assign worker</button><button class="btn btn-gh btn-sm" onclick="toast('Broadcast sent to matching available workers')">Broadcast</button></div>
+    </div>`).join('')}
+  </div></div></div>
+  <div class="card"><div class="ch"><h3>🟢 Assigned &amp; live</h3><span class="cnt">${db.booked.length}</span></div>
+  <div class="cb"><table><thead><tr><th>Worker</th><th>Role</th><th>Client</th><th>Shift</th><th>Status</th></tr></thead><tbody>
+  ${db.booked.map((b,i)=>`<tr><td>${person(b.worker,'',i)}</td><td>${b.role}</td><td>${b.client}</td><td>${b.date} · ${b.start}–${b.end}</td><td>${b.status==='clocked-in'?`<span class="badge b-green"><span class="pulse"></span> On site since ${b.clockIn}</span>`:statusBadge(b.status)}</td></tr>`).join('')}
+  </tbody></table></div></div>`;
+}
+
+function pageStaff(){
+  return `
+  <div class="pagehead"><h2>Staff &amp; Compliance</h2><p>Your talent pool with live compliance tracking — DBS, right-to-work and training certificates with expiry reminders.</p></div>
+  <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+    ${kpi('Active workers',db.workers.length,'👥','var(--brand-soft)','Across 4 roles','')}
+    ${kpi('Fully compliant',db.compliance.filter(c=>c.dbs==='valid'&&c.rtw==='valid'&&c.training==='valid').length,'✅','var(--green-soft)','Cleared to work','up')}
+    ${kpi('Need attention',db.compliance.filter(c=>[c.dbs,c.rtw,c.training].some(x=>x!=='valid')).length,'⚠️','var(--red-soft)','Expiring / expired','dn')}
+  </div>
+  <div class="card"><div class="ch"><h3>Talent pool</h3><span class="act"><button class="btn btn-pri btn-sm" onclick="toast('Add-worker form (demo)')">＋ Add worker</button></span></div>
+  <div class="cb"><table><thead><tr><th>Care worker</th><th>Rating</th><th>DBS</th><th>Right to work</th><th>Training</th><th>DBS expiry</th></tr></thead><tbody>
+  ${db.compliance.map((c,i)=>{const w=db.workers.find(x=>x.name===c.worker);return `<tr>
+    <td>${person(c.worker,w?w.role:'',i)}</td>
+    <td>⭐ ${w?w.rating:''}</td>
+    <td>${compBadge(c.dbs)}</td><td>${compBadge(c.rtw)}</td><td>${compBadge(c.training)}</td>
+    <td class="${c.dbs==='expired'?'expwarn':''}">${c.dbsExp}</td>
+  </tr>`}).join('')}
+  </tbody></table></div></div>`;
+}
+
+function pageTimesheets(){
+  const isProvider=db.role==='provider';
+  const list=isProvider?db.timesheets.filter(t=>t.client==='Rosewood Care Home'):db.timesheets;
+  return `
+  <div class="pagehead"><h2>Timesheets</h2><p>${isProvider?'Approve hours worked at your home before they go to invoice.':'Review and approve submitted hours, then roll straight into invoicing.'}</p></div>
+  <div class="card"><div class="ch"><h3>Submitted timesheets</h3><span class="cnt">${list.filter(t=>t.status==='pending').length} pending</span></div>
+  <div class="cb"><table><thead><tr><th>Worker</th><th>Client</th><th>Date</th><th>Hours</th><th>Rate</th><th>Total</th><th>Status</th><th></th></tr></thead><tbody>
+  ${list.map((t,i)=>`<tr>
+    <td>${person(t.worker,'',i)}</td><td>${t.client}</td><td>${t.date}</td><td>${t.hours}h</td><td>£${t.rate}</td><td><b>£${(t.hours*t.rate).toFixed(2)}</b></td>
+    <td>${statusBadge(t.status)}</td>
+    <td>${t.status==='pending'?`<button class="btn btn-pri btn-sm" onclick="approveTs('${t.id}')">Approve</button>`:'<span class="mini">✓ done</span>'}</td>
+  </tr>`).join('')}
+  </tbody></table></div></div>
+  ${!isProvider?`<div class="card"><div class="ch"><h3>Ready to invoice</h3></div><div class="cb"><div class="rowflex" style="justify-content:space-between"><span class="mini">${db.timesheets.filter(t=>t.status==='approved').length} approved timesheets · £${db.timesheets.filter(t=>t.status==='approved').reduce((a,t)=>a+t.hours*t.rate,0).toFixed(2)} ready to bill</span><button class="btn btn-pri btn-sm" onclick="go('invoices')">Generate invoices →</button></div></div></div>`:''}`;
+}
+
+function pageInvoices(){
+  const isProvider=db.role==='provider';
+  const list=isProvider?db.invoices.filter(i=>i.client==='Rosewood Care Home'):db.invoices;
+  return `
+  <div class="pagehead"><h2>Invoices</h2><p>${isProvider?'Your invoices from the agency.':'Auto-generated from approved timesheets. Track paid, sent and draft.'}</p></div>
+  <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+    ${kpi('Total billed','£'+list.reduce((a,i)=>a+i.amount,0).toLocaleString(),'🧾','var(--brand-soft)','This period','')}
+    ${kpi('Paid','£'+list.filter(i=>i.status==='paid').reduce((a,i)=>a+i.amount,0).toLocaleString(),'✅','var(--green-soft)','','up')}
+    ${kpi('Outstanding','£'+list.filter(i=>i.status!=='paid').reduce((a,i)=>a+i.amount,0).toLocaleString(),'⏳','var(--amber-soft)','','')}
+  </div>
+  <div class="card"><div class="ch"><h3>All invoices</h3>${!isProvider?'<span class="act"><button class="btn btn-pri btn-sm" onclick="toast(\'Weekly invoice run generated from approved timesheets\')">Run weekly billing</button></span>':''}</div>
+  <div class="cb"><table><thead><tr><th>Invoice</th><th>Client</th><th>Period</th><th>Amount</th><th>Status</th><th></th></tr></thead><tbody>
+  ${list.map(i=>`<tr><td><b>${i.id}</b></td><td>${i.client}</td><td>${i.period}</td><td><b>£${i.amount.toLocaleString()}</b></td><td>${statusBadge(i.status)}</td><td><button class="btn btn-gh btn-sm" onclick="toast('Opening PDF — ${i.id}')">View PDF</button></td></tr>`).join('')}
+  </tbody></table></div></div>`;
+}
+
+function pageClients(){
+  return `
+  <div class="pagehead"><h2>Clients</h2><p>Care homes and providers you supply staff to.</p></div>
+  <div class="shiftgrid">
+  ${db.clients.map((c,i)=>`<div class="shift"><div class="top"><div><div class="role">${c.name}</div><div class="loc">Contact: ${c.contact}</div></div><span class="badge b-teal">Active</span></div>
+  <div class="row"><span class="k">Bookings</span>${db.booked.filter(b=>b.client===c.name).length} active</div>
+  <div class="row"><span class="k">Open</span>${db.shifts.filter(s=>s.client===c.name&&s.status==='open').length} requests</div>
+  <div class="foot"><button class="btn btn-gh btn-sm" onclick="toast('Opening client profile (demo)')">View profile</button></div></div>`).join('')}
+  </div>`;
+}
+
+function pageAvailability(){
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const pat=[[1,1,0,1,1,2,0],[1,0,1,1,1,1,1],[0,1,1,0,1,0,0],[2,2,1,1,0,0,1],[1,1,1,1,1,0,0],[1,0,1,1,1,1,0]];
+  return `
+  <div class="pagehead"><h2>Availability</h2><p>See who's free this week to fill your open shifts.</p></div>
+  <div class="card"><div class="cb" style="padding-top:14px">
+    <div class="rowflex" style="gap:16px;margin-bottom:12px;font-size:11.5px;color:var(--muted)"><span class="rowflex"><span class="slot on" style="width:16px;height:16px"></span> Available</span><span class="rowflex"><span class="slot mb" style="width:16px;height:16px"></span> Maybe</span><span class="rowflex"><span class="slot off" style="width:16px;height:16px"></span> Unavailable</span></div>
+  <table class="availtbl"><thead><tr><th>Worker</th>${days.map(d=>`<th>${d}</th>`).join('')}</tr></thead><tbody>
+  ${db.workers.map((w,wi)=>`<tr><td>${person(w.name,w.role,wi)}</td>${pat[wi].map(v=>`<td><span class="slot ${v===1?'on':v===2?'mb':'off'}"></span></td>`).join('')}</tr>`).join('')}
+  </tbody></table></div></div>`;
+}
+
+/* ---- PROVIDER pages ---- */
+function pageBook(){
+  return `
+  <div class="pagehead"><h2>Request Staff</h2><p>Tell the agency what you need — they'll match an available, compliant worker.</p></div>
+  <div class="card" style="max-width:560px"><div class="cb" style="padding:20px 18px">
+    <div class="field"><label>Role required</label><select id="bkRole"><option>Care Assistant</option><option>Registered Nurse</option><option>Senior Carer</option><option>Support Worker</option></select></div>
+    <div class="rowflex" style="gap:12px">
+      <div class="field" style="flex:1"><label>Date</label><input id="bkDate" placeholder="e.g. Tomorrow"></div>
+      <div class="field" style="flex:1"><label>Start</label><input id="bkStart" value="07:00"></div>
+      <div class="field" style="flex:1"><label>End</label><input id="bkEnd" value="19:00"></div>
+    </div>
+    <div class="field"><label>Notes for the agency</label><textarea rows="2" placeholder="e.g. Dementia experience preferred"></textarea></div>
+    <button class="btn btn-pri" style="width:100%;justify-content:center" onclick="submitBooking()">Send request to agency</button>
+  </div></div>`;
+}
+function pageBookings(){
+  const mine=db.booked.filter(b=>b.client==='Rosewood Care Home');
+  return `
+  <div class="pagehead"><h2>My Bookings</h2><p>Staff confirmed for Rosewood Care Home.</p></div>
+  <div class="card"><div class="cb"><table><thead><tr><th>Worker</th><th>Role</th><th>Shift</th><th>Status</th></tr></thead><tbody>
+  ${mine.map((b,i)=>`<tr><td>${person(b.worker,'',i)}</td><td>${b.role}</td><td>${b.date} · ${b.start}–${b.end}</td><td>${b.status==='clocked-in'?'<span class="badge b-green"><span class="pulse"></span> On site</span>':statusBadge(b.status)}</td></tr>`).join('')}
+  </tbody></table></div></div>`;
+}
+
+/* ---- WORKER pages ---- */
+function pageOpenShifts(){
+  const open=db.shifts.filter(s=>s.status==='open');
+  return `
+  <div class="pagehead"><h2>Open Shifts</h2><p>Shifts matched to your role and availability. Tap grab to claim instantly.</p></div>
+  <div class="shiftgrid">
+  ${open.map(s=>`<div class="shift"><div class="top"><div><div class="role">${s.role}</div><div class="loc">${s.client}</div></div><span class="pay">£${s.pay}/hr</span></div>
+  <div class="row"><span class="k">📅 When</span>${s.date}, ${s.start}–${s.end}</div>
+  <div class="row"><span class="k">💷 Est. pay</span>~£${(s.pay*calcHrs(s.start,s.end)).toFixed(0)} for shift</div>
+  <div class="foot"><button class="btn btn-pri btn-sm" style="flex:1;justify-content:center" onclick="grabShift('${s.id}')">Grab this shift</button></div></div>`).join('')}
+  </div>`;
+}
+function calcHrs(a,b){let[h1,m1]=a.split(':').map(Number),[h2,m2]=b.split(':').map(Number);let d=(h2*60+m2)-(h1*60+m1);if(d<0)d+=1440;return d/60}
+
+function pageMySchedule(){
+  return `
+  <div class="pagehead"><h2>My Schedule</h2><p>Your upcoming confirmed shifts.</p></div>
+  <div class="card"><div class="cb"><table><thead><tr><th>Date</th><th>Client</th><th>Role</th><th>Time</th><th>Status</th></tr></thead><tbody>
+  <tr><td><b>Tomorrow</b></td><td>Rosewood Care Home</td><td>Care Assistant</td><td>07:00–19:00</td><td>${statusBadge('confirmed')}</td></tr>
+  <tr><td>29 Jul</td><td>Oakfield Nursing Home</td><td>Care Assistant</td><td>08:00–16:00</td><td>${statusBadge('confirmed')}</td></tr>
+  <tr><td>30 Jul</td><td>Sunnymead Residential</td><td>Care Assistant</td><td>14:00–22:00</td><td>${statusBadge('pending')}</td></tr>
+  </tbody></table></div></div>`;
+}
+function pageClock(){
+  const clocked=db.myClock;
+  return `
+  <div class="pagehead"><h2>Clock In / Out</h2><p>Geo-verified clock-in for your shift. The agency and care home see this live.</p></div>
+  <div class="card" style="max-width:480px;margin:0 auto"><div class="clockcard">
+    <div class="lbl">Rosewood Care Home · Care Assistant</div>
+    <div class="big" id="wclock">--:--</div>
+    ${clocked?`
+      <div class="status"><span class="pulse"></span> <b style="color:var(--green)">Clocked in</b> at ${clocked.inLabel}</div>
+      <div class="lbl">Time on shift</div>
+      <div class="elapsed" id="wElapsed" data-in="${clocked.inLabel}">00:00:00</div>
+      <div class="mini" style="margin-bottom:14px">📍 Location verified · on site</div>
+      <button class="btn btn-gh" style="border-color:var(--red);color:var(--red);padding:12px 28px" onclick="clockOut()">■ Clock out</button>
+    `:`
+      <div class="status" style="color:var(--muted)">Ready to start your shift</div>
+      <div class="mini" style="margin-bottom:18px">📍 Location will be recorded at clock-in</div>
+      <button class="btn btn-pri" style="padding:14px 34px;font-size:15px" onclick="clockIn()">▶ Clock in now</button>
+    `}
+  </div></div>`;
+}
+function pageMyAvail(){
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  return `
+  <div class="pagehead"><h2>My Availability</h2><p>Tap a day to toggle. The agency only offers you shifts when you're free.</p></div>
+  <div class="card" style="max-width:640px"><div class="cb" style="padding:18px">
+  <div class="rowflex" style="gap:10px;flex-wrap:wrap">
+  ${days.map((d,i)=>{const st=[1,1,0,1,1,2,0][i];return `<button class="btn ${st===1?'btn-pri':st===2?'btn-gh':'btn-gh'}" style="flex:1;min-width:70px;justify-content:center;flex-direction:column;padding:14px 8px;${st===2?'border-color:var(--amber);color:var(--amber)':''}" onclick="toast('Availability updated for ${d}')"><b>${d}</b><span class="mini" style="color:inherit">${st===1?'Available':st===2?'Maybe':'Off'}</span></button>`}).join('')}
+  </div></div></div>`;
+}
+function pageMyCompliance(){
+  const c=db.compliance.find(x=>x.worker==='James Whitfield');
+  return `
+  <div class="pagehead"><h2>My Documents</h2><p>Keep your compliance up to date so you stay cleared for shifts.</p></div>
+  <div class="shiftgrid">
+    ${docCard('DBS Check','valid','Valid until 09 Aug 2026','🛡️')}
+    ${docCard('Right to Work','valid','Verified','📄')}
+    ${docCard('Manual Handling Training','expiring','Expires in 13 days — please renew','🎓')}
+    ${docCard('Care Certificate','valid','Completed','✅')}
+  </div>
+  <div class="card" style="margin-top:8px"><div class="cb" style="padding:16px 18px"><div class="rowflex" style="justify-content:space-between"><span><b>Upload a new document</b><div class="mini">PDF or photo — the agency verifies it</div></span><button class="btn btn-pri btn-sm" onclick="toast('Document upload (demo)')">＋ Upload</button></div></div></div>`;
+}
+function docCard(t,st,sub,ic){return `<div class="shift"><div class="top"><div class="role" style="font-size:14px">${ic} ${t}</div>${compBadge(st)}</div><div class="mini" style="margin-top:4px">${sub}</div>${st==='expiring'?'<button class="btn btn-pri btn-sm" style="margin-top:12px" onclick="toast(\'Renewal reminder set\')">Renew now</button>':''}</div>`}
+
+function pageNews(){
+  return `
+  <div class="pagehead"><h2>Newsfeed</h2><p>Agency-wide announcements, shout-outs and updates.</p></div>
+  <div class="card"><div class="cb" style="padding:8px 18px 14px">
+  ${db.role!=='worker'?`<div class="rowflex" style="padding:12px 0;border-bottom:1px solid var(--line)"><input id="newPost" placeholder="Share an update with the team..." style="flex:1;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-family:inherit;font-size:13px"><button class="btn btn-pri btn-sm" onclick="postNews()">Post</button></div>`:''}
+  ${db.news.map(renderPost).join('')}
+  </div></div>`;
+}
+function renderPost(p,i){return `<div class="post ${p.pin?'pin':''}">${bAva(p.author,i)}<div class="body"><div class="meta"><b>${p.author}</b> · ${p.role} · ${p.time} ${p.pin?'· 📌 Pinned':''}</div><div class="txt">${p.text}</div></div></div>`}
+
+/* ---------------- ROUTER ---------------- */
+const PAGES={dashboard:pageDashboard,shifts:pageShifts,staff:pageStaff,timesheets:pageTimesheets,invoices:pageInvoices,clients:pageClients,availability:pageAvailability,news:pageNews,book:pageBook,bookings:pageBookings,openshifts:pageOpenShifts,myschedule:pageMySchedule,clock:pageClock,myavail:pageMyAvail,mycompliance:pageMyCompliance};
+const TITLES={dashboard:'Dashboard',shifts:'Shift Board',staff:'Staff & Compliance',timesheets:'Timesheets',invoices:'Invoices',clients:'Clients',availability:'Availability',news:'Newsfeed',book:'Request Staff',bookings:'My Bookings',openshifts:'Open Shifts',myschedule:'My Schedule',clock:'Clock In / Out',myavail:'My Availability',mycompliance:'My Documents'};
+
+function renderNav(){
+  const items=NAV[db.role];
+  document.getElementById('nav').innerHTML=items.map(it=>{
+    if(it.lbl)return `<div class="lbl">${it.lbl}</div>`;
+    let badge='';
+    if(it.badge==='pending'){const n=db.timesheets.filter(t=>t.status==='pending'&&(db.role!=='provider'||t.client==='Rosewood Care Home')).length;if(n)badge=`<span class="badge">${n}</span>`}
+    if(it.badge==='open'){const n=db.shifts.filter(s=>s.status==='open').length;if(n)badge=`<span class="badge">${n}</span>`}
+    return `<a class="${it.id===current?'active':''}" onclick="go('${it.id}')"><span class="ic">${it.ic}</span><span class="tx">${it.tx}</span>${badge}</a>`;
+  }).join('');
+}
+function render(){
+  if(!PAGES[current])current='dashboard';
+  document.getElementById('content').innerHTML=PAGES[current]();
+  document.getElementById('pgtitle').textContent=TITLES[current];
+  document.getElementById('pgsub').textContent=ME[db.role].role;
+  renderNav();
+}
+function go(id){current=id;render()}
+function switchRole(r){db.role=r;current='dashboard';save();const m=ME[r];document.getElementById('topName').textContent=m.name;document.getElementById('topRole').textContent=m.role;document.getElementById('topAva').textContent=initials(m.name);document.getElementById('roleSel').value=r;render()}
+
+/* ---------------- ACTIONS ---------------- */
+function toast(msg){const t=document.getElementById('toast');t.innerHTML=`<span class="ok">✔</span> ${msg}`;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2600)}
+function approveTs(id){const t=db.timesheets.find(x=>x.id===id);if(t){t.status='approved';save();render();toast('Timesheet approved for '+t.worker)}}
+function grabShift(id){const s=db.shifts.find(x=>x.id===id);if(s){s.status='assigned';db.shifts=db.shifts.filter(x=>x.id!==id);db.booked.push({id:'b'+Date.now(),role:s.role,client:s.client,worker:'James Whitfield',date:s.date,start:s.start,end:s.end,status:'confirmed'});save();render();toast('Shift grabbed! Added to your schedule 🎉')}}
+function assignShift(id){const s=db.shifts.find(x=>x.id===id);if(s){db.shifts=db.shifts.filter(x=>x.id!==id);db.booked.push({id:'b'+Date.now(),role:s.role,client:s.client,worker:'Priya Nair',date:s.date,start:s.start,end:s.end,status:'confirmed'});save();render();toast('Assigned to Priya Nair · she'+"'"+'s been notified')}}
+function clockIn(){const now=new Date();db.myClock={in:now.getTime(),inLabel:fmt(now)};save();render();toast('Clocked in — have a great shift!')}
+function clockOut(){db.myClock=null;save();render();toast('Clocked out. Timesheet auto-submitted for approval ✔')}
+function submitBooking(){const r=document.getElementById('bkRole').value,d=document.getElementById('bkDate').value||'Tomorrow',s=document.getElementById('bkStart').value,e=document.getElementById('bkEnd').value;db.shifts.push({id:'s'+Date.now(),role:r,client:'Rosewood Care Home',date:d,start:s,end:e,pay:14,status:'open'});save();toast('Request sent — agency is matching a worker');go('bookings')}
+function postNews(){const v=document.getElementById('newPost').value.trim();if(!v)return;db.news.unshift({author:ME[db.role].name,role:ME[db.role].short,time:'Just now',text:v,pin:false});save();render();toast('Posted to newsfeed')}
+function openPostShift(){
+  document.getElementById('modal').innerHTML=`
+  <div class="mh"><h3>Post open shift</h3><span class="x" onclick="closeModal()">×</span></div>
+  <div class="mb">
+    <div class="field"><label>Role</label><select id="psRole"><option>Care Assistant</option><option>Registered Nurse</option><option>Senior Carer</option><option>Support Worker</option></select></div>
+    <div class="field"><label>Client site</label><select id="psClient">${db.clients.map(c=>`<option>${c.name}</option>`).join('')}</select></div>
+    <div class="rowflex" style="gap:10px">
+      <div class="field" style="flex:1"><label>Date</label><input id="psDate" placeholder="Today"></div>
+      <div class="field" style="flex:1"><label>Start</label><input id="psStart" value="08:00"></div>
+      <div class="field" style="flex:1"><label>End</label><input id="psEnd" value="20:00"></div>
+    </div>
+    <div class="field"><label>Rate £/hr</label><input id="psPay" value="14"></div>
+  </div>
+  <div class="mf"><button class="btn btn-gh" onclick="closeModal()">Cancel</button><button class="btn btn-pri" onclick="savePostShift()">Post shift</button></div>`;
+  document.getElementById('modalBg').classList.add('show');
+}
+function savePostShift(){const g=id=>document.getElementById(id).value;db.shifts.push({id:'s'+Date.now(),role:g('psRole'),client:g('psClient'),date:g('psDate')||'Today',start:g('psStart'),end:g('psEnd'),pay:parseFloat(g('psPay'))||14,status:'open'});save();closeModal();render();toast('Open shift posted — broadcast to available workers')}
+function closeModal(){document.getElementById('modalBg').classList.remove('show')}
+document.getElementById('modalBg').addEventListener('click',e=>{if(e.target.id==='modalBg')closeModal()});
+
+/* ---------------- CLOCKS ---------------- */
+function fmt(d){return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
+function pad(n){return String(n).padStart(2,'0')}
+function tickClocks(){
+  const now=new Date();
+  document.getElementById('topclock').textContent=pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds());
+  const wc=document.getElementById('wclock');if(wc)wc.textContent=fmt(now);
+  // worker elapsed
+  const we=document.getElementById('wElapsed');
+  if(we&&db.myClock){let diff=Math.floor((now.getTime()-db.myClock.in)/1000);we.textContent=pad(Math.floor(diff/3600))+':'+pad(Math.floor(diff/60)%60)+':'+pad(diff%60)}
+  // admin elapsed (from HH:MM label -> today)
+  document.querySelectorAll('.elap').forEach(el=>{
+    const[h,m]=el.dataset.in.split(':').map(Number);const start=new Date();start.setHours(h,m,0,0);let diff=Math.floor((now-start)/1000);if(diff<0)diff+=86400;el.textContent=pad(Math.floor(diff/3600))+'h '+pad(Math.floor(diff/60)%60)+'m'});
+}
+setInterval(tickClocks,1000);
+
+/* ---------------- INIT ---------------- */
+switchRole(db.role);
+tickClocks();
+</script>
+</body>
+</html>
