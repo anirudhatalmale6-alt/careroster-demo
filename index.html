@@ -167,6 +167,10 @@ tbody tr:hover{background:#fafcfc}
       <div class="logo">C</div>
       <div><b>CareRoster</b><span>CRM &amp; ATS</span></div>
     </div>
+    <div id="wsBadge" style="margin:0 14px 8px;padding:8px 11px;background:#132c33;border-radius:9px;display:flex;align-items:center;gap:8px">
+      <span style="font-size:15px">🏢</span>
+      <div style="min-width:0"><div id="wsName" style="font-size:12px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Rosewood Care Agency</div><div id="wsPlan" style="font-size:10px;color:#6f8f92">Pro plan · Workspace</div></div>
+    </div>
     <nav class="nav" id="nav"></nav>
     <div class="sb-foot">Demo build · v0.9<br>Sample data only</div>
   </aside>
@@ -182,6 +186,7 @@ tbody tr:hover{background:#fafcfc}
       <div class="roleswitch">
         <label>View as</label>
         <select id="roleSel" onchange="switchRole(this.value)">
+          <option value="owner">Platform Owner (SaaS)</option>
           <option value="admin">Agency Manager / Admin</option>
           <option value="provider">Client / Care Provider</option>
           <option value="worker">Care Worker</option>
@@ -205,7 +210,7 @@ const AVA_COLORS=[['#e6f5f3','#0f766e'],['#eaf0fe','#2a54c0'],['#fdf3e2','#a56a1
 function ac(i){return AVA_COLORS[i%AVA_COLORS.length]}
 function initials(n){return n.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()}
 
-const STORE_KEY='careroster_demo_v1';
+const STORE_KEY='careroster_demo_v2';
 const seed=()=>({
   role:'admin',
   workers:[
@@ -257,25 +262,47 @@ const seed=()=>({
     {author:'Sarah Adams',role:'Admin',time:'Yesterday',text:'Welcome Daniel Osei to the team! Registered Nurse joining our Sunnymead rota. 🎉',pin:false},
     {author:'Rosewood Care Home',role:'Client',time:'2 days ago',text:'Thank you to Amara for excellent overnight cover this week — residents love her.',pin:false},
   ],
-  myClock:null // worker clock state {in:timestamp}
+  myClock:null, // worker clock state {in:timestamp}
+  tenants:[
+    {id:'t1',name:'Rosewood Care Agency',owner:'You',plan:'Pro',workers:34,status:'active',mrr:149,since:'This is your agency'},
+    {id:'t2',name:'BrightPath Homecare',owner:'D. Fletcher',plan:'Starter',workers:9,status:'active',mrr:49,since:'Joined 3 days ago'},
+    {id:'t3',name:'Guardian Nursing Staff',owner:'A. Mensah',plan:'Enterprise',workers:120,status:'active',mrr:399,since:'Joined 2 wks ago'},
+    {id:'t4',name:'Willow Care Solutions',owner:'S. Byrne',plan:'Pro',workers:41,status:'trial',mrr:0,since:'Trial · 9 days left'},
+    {id:'t5',name:'CountyWide Staffing',owner:'M. Idris',plan:'Starter',workers:6,status:'active',mrr:49,since:'Joined 1 mo ago'},
+  ],
+  plans:[
+    {name:'Starter',price:49,tag:'Small agencies',limit:'Up to 15 workers',feats:['Scheduling & rota','Clock in/out','Basic compliance tracking','Timesheets','Email support'],pop:false},
+    {name:'Pro',price:149,tag:'Growing agencies',limit:'Unlimited workers',feats:['Everything in Starter','Full compliance vault + expiry alerts','Invoicing & Xero export','Newsfeed & broadcasts','Mobile app','Priority support'],pop:true},
+    {name:'Enterprise',price:399,tag:'Multi-branch groups',limit:'Unlimited + multi-branch',feats:['Everything in Pro','Multi-branch management','Custom branding (white-label)','API access','Dedicated account manager','SLA & onboarding'],pop:false},
+  ]
 });
 
 let db=JSON.parse(localStorage.getItem(STORE_KEY)||'null')||seed();
 function save(){localStorage.setItem(STORE_KEY,JSON.stringify(db))}
 
 const ME={
-  admin:{name:'Sarah Adams',role:'Agency Manager',short:'Admin'},
+  owner:{name:'You (Platform Owner)',role:'CareRoster SaaS · Super Admin',short:'Owner'},
+  admin:{name:'Sarah Adams',role:'Rosewood Care Agency',short:'Admin'},
   provider:{name:'Margaret Hale',role:'Rosewood Care Home',short:'Client'},
   worker:{name:'James Whitfield',role:'Care Assistant',short:'Care Worker'},
 };
 
 /* ---------------- NAV DEFINITIONS ---------------- */
 const NAV={
+  owner:[
+    {lbl:'Platform'},
+    {id:'ownerdash',ic:'📈',tx:'Overview'},
+    {id:'agencies',ic:'🏢',tx:'Agencies'},
+    {lbl:'Monetisation'},
+    {id:'plans',ic:'💳',tx:'Plans & Pricing'},
+    {id:'revenue',ic:'💰',tx:'Revenue'},
+  ],
   admin:[
     {lbl:'Overview'},
     {id:'dashboard',ic:'📊',tx:'Dashboard'},
-    {id:'shifts',ic:'🗓️',tx:'Shift Board'},
-    {id:'staff',ic:'👥',tx:'Staff & Compliance'},
+    {id:'rota',ic:'🗓️',tx:'Rota Builder'},
+    {id:'shifts',ic:'🔥',tx:'Shift Board'},
+    {id:'staff',ic:'🛡️',tx:'Staff & Compliance'},
     {lbl:'Finance'},
     {id:'timesheets',ic:'⏱️',tx:'Timesheets',badge:'pending'},
     {id:'invoices',ic:'🧾',tx:'Invoices'},
@@ -637,9 +664,119 @@ function pageNews(){
 }
 function renderPost(p,i){return `<div class="post ${p.pin?'pin':''}">${bAva(p.author,i)}<div class="body"><div class="meta"><b>${p.author}</b> · ${p.role} · ${p.time} ${p.pin?'· 📌 Pinned':''}</div><div class="txt">${p.text}</div></div></div>`}
 
+/* ---- ADMIN: ROTA BUILDER ---- */
+function pageRota(){
+  const days=['Mon 28','Tue 29','Wed 30','Thu 31','Fri 01','Sat 02','Sun 03'];
+  // build a weekly grid: rows = clients, cols = days, cells = assigned worker or open/empty
+  const grid={
+    'Rosewood Care Home':[{w:'Amara Okafor',r:'RN',t:'08–20'},{w:'Amara Okafor',r:'RN',t:'08–20'},{open:1,r:'Care Asst',t:'07–19'},{w:'Grace Bennett',r:'Care Asst',t:'07–19'},{w:'Grace Bennett',r:'Care Asst',t:'07–19'},{open:1,r:'RN',t:'20–08'},null],
+    'Oakfield Nursing Home':[{w:'James Whitfield',r:'Care Asst',t:'07–15'},{open:1,r:'Care Asst',t:'22–07'},{w:'Priya Nair',r:'Senior',t:'08–20'},{w:'Priya Nair',r:'Senior',t:'08–20'},null,{w:'Tomasz K.',r:'Support',t:'14–22'},{w:'Tomasz K.',r:'Support',t:'14–22'}],
+    'Sunnymead Residential':[{w:'Daniel Osei',r:'RN',t:'09–17'},{w:'Daniel Osei',r:'RN',t:'09–17'},{w:'Daniel Osei',r:'RN',t:'09–17'},{open:1,r:'Senior',t:'08–20'},{w:'Grace Bennett',r:'Care Asst',t:'12–20'},null,null],
+  };
+  const cell=(c,ci)=>{
+    if(!c)return `<td style="padding:5px"><button class="rotacell empty" onclick="toast('Add shift (demo)')">+</button></td>`;
+    if(c.open)return `<td style="padding:5px"><div class="rotacell open" onclick="toast('Open shift — broadcasting to available ${c.r}s')"><div class="rc-role">${c.r}</div><div class="rc-t">${c.t}</div><div class="rc-open">🔥 OPEN</div></div></td>`;
+    const i=c.w.length;return `<td style="padding:5px"><div class="rotacell filled">${bAva(c.w,i)}<div style="min-width:0"><div class="rc-w">${c.w.split(' ')[0]} ${c.w.split(' ')[1]?.[0]||''}</div><div class="rc-t">${c.r} · ${c.t}</div></div></div></td>`;
+  };
+  const openCount=Object.values(grid).flat().filter(c=>c&&c.open).length;
+  return `
+  <style>
+  .rotacell{border-radius:9px;padding:8px;min-height:56px;display:flex;align-items:center;gap:7px;font-size:11px;cursor:pointer;transition:.12s}
+  .rotacell.filled{background:var(--brand-soft);border:1px solid #cdeae6} .rotacell.filled:hover{box-shadow:0 3px 10px rgba(13,148,136,.18)}
+  .rotacell.open{background:var(--amber-soft);border:1px dashed #e0b877;flex-direction:column;align-items:flex-start;justify-content:center;text-align:left}
+  .rotacell.empty{background:#f7fafa;border:1px dashed var(--line);width:100%;color:#9fb3ba;font-size:18px;justify-content:center}
+  .rc-role{font-weight:700;color:#a56a12} .rc-t{color:var(--muted);font-size:10.5px} .rc-open{font-weight:800;color:#b8860b;font-size:10px;margin-top:1px}
+  .rc-w{font-weight:700;font-size:11.5px;line-height:1.1}
+  .rotatbl td:first-child{background:#fafcfc;position:sticky;left:0}
+  </style>
+  <div class="pagehead"><h2>Rota Builder</h2><p>Plan the week across all your client sites. Drag-and-drop feel, open shifts flagged, gaps highlighted — the scheduling heart of the platform.</p></div>
+  <div class="rowflex" style="margin-bottom:16px;justify-content:space-between">
+    <div class="rowflex" style="gap:10px"><button class="btn btn-gh btn-sm">◀ Prev week</button><b style="font-size:14px">Week of 28 Jul – 03 Aug</b><button class="btn btn-gh btn-sm">Next week ▶</button></div>
+    <div class="rowflex" style="gap:8px"><span class="badge b-amber">${openCount} open shifts</span><button class="btn btn-pri btn-sm" onclick="openPostShift()">＋ Add shift</button><button class="btn btn-gh btn-sm" onclick="toast('Rota published — staff notified via app')">Publish &amp; notify</button></div>
+  </div>
+  <div class="card"><div class="cb" style="padding:10px;overflow-x:auto">
+    <table class="rotatbl" style="min-width:900px"><thead><tr><th style="min-width:150px">Client site</th>${days.map(d=>`<th style="text-align:center;min-width:110px">${d}</th>`).join('')}</tr></thead>
+    <tbody>${Object.entries(grid).map(([client,cells])=>`<tr><td style="font-weight:700;font-size:12.5px">${client}</td>${cells.map(cell).join('')}</tr>`).join('')}</tbody></table>
+  </div></div>
+  <div class="rowflex" style="gap:16px;font-size:11.5px;color:var(--muted)"><span class="rowflex"><span class="rotacell filled" style="min-height:0;padding:3px 8px;width:auto">■</span> Assigned</span><span class="rowflex"><span class="rotacell open" style="min-height:0;padding:3px 8px;width:auto">🔥</span> Open — needs filling</span><span class="rowflex"><span class="rotacell empty" style="min-height:0;padding:3px 8px;width:auto;display:inline-flex">+</span> No shift</span></div>`;
+}
+
+/* ---- OWNER: SaaS SUPER-ADMIN ---- */
+function ownerDash(){
+  const active=db.tenants.filter(t=>t.status==='active').length;
+  const mrr=db.tenants.reduce((a,t)=>a+t.mrr,0);
+  const workers=db.tenants.reduce((a,t)=>a+t.workers,0);
+  const trials=db.tenants.filter(t=>t.status==='trial').length;
+  return `
+  <div class="pagehead"><h2>Platform Overview 🚀</h2><p>Your SaaS at a glance — every agency subscribing to CareRoster, and the revenue they generate.</p></div>
+  <div class="kpis">
+    ${kpi('Monthly recurring revenue','£'+mrr,'💰','var(--green-soft)','+£149 this month','up')}
+    ${kpi('Paying agencies',active,'🏢','var(--brand-soft)','Across the platform','up')}
+    ${kpi('On free trial',trials,'⏳','var(--amber-soft)','Convert to paid','')}
+    ${kpi('Total care workers',workers,'👥','var(--accent-soft)','Managed platform-wide','')}
+  </div>
+  <div class="grid2">
+    <div class="card"><div class="ch"><h3>Subscribing agencies</h3><span class="cnt">${db.tenants.length} tenants</span><span class="act"><button class="btn btn-gh btn-sm" onclick="go('agencies')">Manage →</button></span></div>
+    <div class="cb"><table><thead><tr><th>Agency</th><th>Plan</th><th>Workers</th><th>MRR</th><th>Status</th></tr></thead><tbody>
+    ${db.tenants.map((t,i)=>`<tr><td>${person(t.name,t.owner==='You'?'⭐ Your agency':t.owner,i)}</td><td><span class="badge ${t.plan==='Enterprise'?'b-blue':t.plan==='Pro'?'b-teal':'b-gray'}">${t.plan}</span></td><td>${t.workers}</td><td><b>£${t.mrr}</b></td><td>${t.status==='trial'?'<span class="badge b-amber">Trial</span>':'<span class="badge b-green">Active</span>'}</td></tr>`).join('')}
+    </tbody></table></div></div>
+    <div>
+      <div class="card"><div class="ch"><h3>Revenue by plan</h3></div><div class="cb">
+        ${['Enterprise','Pro','Starter'].map(pl=>{const t=db.tenants.filter(x=>x.plan===pl&&x.status==='active');const rev=t.reduce((a,x)=>a+x.mrr,0);const pct=Math.round(rev/mrr*100);const col=pl==='Enterprise'?'var(--accent)':pl==='Pro'?'var(--brand)':'#9fb3ba';return miniStat(pl+' ('+t.length+')','£'+rev+'/mo',col,pct)}).join('')}
+      </div></div>
+      <div class="card"><div class="ch"><h3>Multi-tenant</h3></div><div class="cb" style="padding:14px 18px">
+        <p style="font-size:12.5px;color:#3a5058">Every agency runs in its own isolated workspace — separate data, separate branding, separate logins. Onboarding a new customer takes seconds and never touches another tenant's data.</p>
+        <button class="btn btn-pri btn-sm" style="margin-top:12px;width:100%;justify-content:center" onclick="toast('New agency onboarding wizard (demo)')">＋ Onboard new agency</button>
+      </div></div>
+    </div>
+  </div>`;
+}
+function pageAgencies(){
+  return `
+  <div class="pagehead"><h2>Agencies</h2><p>Every care provider subscribing to your platform. Each is a fully isolated tenant.</p></div>
+  <div class="rowflex" style="margin-bottom:16px;justify-content:space-between"><span class="mini">${db.tenants.length} agencies · £${db.tenants.reduce((a,t)=>a+t.mrr,0)}/mo total</span><button class="btn btn-pri btn-sm" onclick="toast('Onboarding wizard (demo)')">＋ Onboard agency</button></div>
+  <div class="shiftgrid">
+  ${db.tenants.map((t,i)=>`<div class="shift"><div class="top"><div><div class="role">${t.name}</div><div class="loc">${t.owner==='You'?'⭐ Your own agency':'Owner: '+t.owner}</div></div><span class="badge ${t.status==='trial'?'b-amber':'b-green'}">${t.status==='trial'?'Trial':'Active'}</span></div>
+  <div class="row"><span class="k">Plan</span><span class="badge ${t.plan==='Enterprise'?'b-blue':t.plan==='Pro'?'b-teal':'b-gray'}">${t.plan}</span></div>
+  <div class="row"><span class="k">Workers</span>${t.workers} · ${t.since}</div>
+  <div class="row"><span class="k">Revenue</span><span class="pay">£${t.mrr}/mo</span></div>
+  <div class="foot"><button class="btn btn-gh btn-sm" onclick="toast('Impersonate ${t.name} (demo) — see their workspace')">Open workspace</button><button class="btn btn-gh btn-sm" onclick="toast('Billing for ${t.name}')">Billing</button></div></div>`).join('')}
+  </div>`;
+}
+function pagePlans(){
+  return `
+  <div class="pagehead"><h2>Plans &amp; Pricing</h2><p>Your three subscription tiers. Edit features and prices anytime — changes apply to new sign-ups automatically.</p></div>
+  <div class="shiftgrid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
+  ${db.plans.map(p=>`<div class="shift" style="${p.pop?'border:2px solid var(--brand);position:relative':''}">
+    ${p.pop?'<div style="position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--brand);color:#fff;font-size:10px;font-weight:800;padding:3px 12px;border-radius:20px">MOST POPULAR</div>':''}
+    <div style="text-align:center;padding:6px 0 10px"><div class="role" style="font-size:17px">${p.name}</div><div class="mini">${p.tag}</div>
+    <div style="margin:10px 0"><span style="font-size:34px;font-weight:800;letter-spacing:-1px">£${p.price}</span><span class="mini">/mo</span></div>
+    <div class="badge b-gray">${p.limit}</div></div>
+    <div style="border-top:1px solid var(--line);padding-top:12px">${p.feats.map(f=>`<div style="display:flex;gap:8px;font-size:12.5px;margin-bottom:7px"><span style="color:var(--green)">✔</span> ${f}</div>`).join('')}</div>
+    <button class="btn ${p.pop?'btn-pri':'btn-gh'} btn-sm" style="width:100%;justify-content:center;margin-top:12px" onclick="toast('Edit ${p.name} plan (demo)')">Edit plan</button>
+  </div>`).join('')}
+  </div>
+  <div class="card" style="margin-top:6px"><div class="cb" style="padding:15px 18px"><div class="rowflex" style="justify-content:space-between"><span><b>Billing engine</b><div class="mini">Powered by Stripe · self-serve sign-up, automatic monthly billing, cards on file, dunning for failed payments, VAT handling</div></span><span class="badge b-teal">Stripe connected</span></div></div></div>`;
+}
+function pageRevenue(){
+  const mrr=db.tenants.reduce((a,t)=>a+t.mrr,0);
+  const bars=[220,280,310,347,398,445,547];const mx=Math.max(...bars);const mons=['Jan','Feb','Mar','Apr','May','Jun','Jul'];
+  return `
+  <div class="pagehead"><h2>Revenue</h2><p>Recurring revenue as your platform grows.</p></div>
+  <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+    ${kpi('MRR','£'+mrr,'💰','var(--green-soft)','+23% MoM','up')}
+    ${kpi('ARR (projected)','£'+(mrr*12).toLocaleString(),'📈','var(--brand-soft)','Annualised','up')}
+    ${kpi('Avg revenue / agency','£'+Math.round(mrr/db.tenants.filter(t=>t.mrr>0).length),'🧮','var(--accent-soft)','Per paying tenant','')}
+  </div>
+  <div class="card"><div class="ch"><h3>MRR growth</h3><span class="cnt">Last 7 months</span></div>
+  <div class="cb" style="padding:20px 18px"><div style="display:flex;align-items:flex-end;gap:14px;height:180px">
+    ${bars.map((b,i)=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end"><div style="font-size:11px;font-weight:700;color:var(--brand-dk)">£${b}</div><div style="width:100%;background:linear-gradient(180deg,#14b8a6,#0d9488);border-radius:7px 7px 0 0;height:${b/mx*100}%"></div><div class="mini">${mons[i]}</div></div>`).join('')}
+  </div></div></div>`;
+}
+
 /* ---------------- ROUTER ---------------- */
-const PAGES={dashboard:pageDashboard,shifts:pageShifts,staff:pageStaff,timesheets:pageTimesheets,invoices:pageInvoices,clients:pageClients,availability:pageAvailability,news:pageNews,book:pageBook,bookings:pageBookings,openshifts:pageOpenShifts,myschedule:pageMySchedule,clock:pageClock,myavail:pageMyAvail,mycompliance:pageMyCompliance};
-const TITLES={dashboard:'Dashboard',shifts:'Shift Board',staff:'Staff & Compliance',timesheets:'Timesheets',invoices:'Invoices',clients:'Clients',availability:'Availability',news:'Newsfeed',book:'Request Staff',bookings:'My Bookings',openshifts:'Open Shifts',myschedule:'My Schedule',clock:'Clock In / Out',myavail:'My Availability',mycompliance:'My Documents'};
+const PAGES={dashboard:pageDashboard,rota:pageRota,shifts:pageShifts,staff:pageStaff,timesheets:pageTimesheets,invoices:pageInvoices,clients:pageClients,availability:pageAvailability,news:pageNews,book:pageBook,bookings:pageBookings,openshifts:pageOpenShifts,myschedule:pageMySchedule,clock:pageClock,myavail:pageMyAvail,mycompliance:pageMyCompliance,ownerdash:ownerDash,agencies:pageAgencies,plans:pagePlans,revenue:pageRevenue};
+const TITLES={dashboard:'Dashboard',rota:'Rota Builder',shifts:'Shift Board',staff:'Staff & Compliance',timesheets:'Timesheets',invoices:'Invoices',clients:'Clients',availability:'Availability',news:'Newsfeed',book:'Request Staff',bookings:'My Bookings',openshifts:'Open Shifts',myschedule:'My Schedule',clock:'Clock In / Out',myavail:'My Availability',mycompliance:'My Documents',ownerdash:'Platform Overview',agencies:'Agencies',plans:'Plans & Pricing',revenue:'Revenue'};
 
 function renderNav(){
   const items=NAV[db.role];
@@ -659,7 +796,9 @@ function render(){
   renderNav();
 }
 function go(id){current=id;render()}
-function switchRole(r){db.role=r;current='dashboard';save();const m=ME[r];document.getElementById('topName').textContent=m.name;document.getElementById('topRole').textContent=m.role;document.getElementById('topAva').textContent=initials(m.name);document.getElementById('roleSel').value=r;render()}
+const HOME={owner:'ownerdash',admin:'dashboard',provider:'dashboard',worker:'dashboard'};
+const WS={owner:['All Agencies','Platform view · 5 tenants'],admin:['Rosewood Care Agency','Pro plan · Workspace'],provider:['Rosewood Care Home','Client of Rosewood Agency'],worker:['Rosewood Care Agency','Care Worker · Workspace']};
+function switchRole(r){db.role=r;current=HOME[r];save();const m=ME[r];document.getElementById('topName').textContent=m.name;document.getElementById('topRole').textContent=m.role;document.getElementById('topAva').textContent=initials(m.name.replace(/[()]/g,''));document.getElementById('roleSel').value=r;const w=WS[r];document.getElementById('wsName').textContent=w[0];document.getElementById('wsPlan').textContent=w[1];render()}
 
 /* ---------------- ACTIONS ---------------- */
 function toast(msg){const t=document.getElementById('toast');t.innerHTML=`<span class="ok">✔</span> ${msg}`;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2600)}
